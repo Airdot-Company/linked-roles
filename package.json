@@ -1,40 +1,21 @@
 {
-  "name": "utilsfordiscordjs",
-  "version": "1.1.8",
-  "description": "🛠️ Handy utilities for Discord bots.",
-  "main": "dist/index.js",
-  "devDependencies": {
-    "@discordjs/rest": "^0.5.0",
-    "@types/node": "^18.0.0",
-    "discord-api-types": "^0.34.0",
-    "dotenv": "^16.0.3"
-  },
+  "name": "@airdot/verifiers",
+  "version": "1.0.0",
+  "description": "Verifiers for node types and discord types",
+  "main": "index.js",
+  "repository": "https://github.com/Airdot-Company/verifiers.git",
+  "author": "TurtlePaw <turtlesimsyt@gmail.com>",
+  "license": "MIT",
+  "private": false,
   "scripts": {
     "build": "rm -rf dist/ & tsc",
     "test": "node ./tests/index.js",
     "dev": "yarn build && yarn test",
     "install": "yarn build"
   },
-  "repository": {
-    "type": "git",
-    "url": "git+https://github.com/turtlepaws-workshop/paintfordiscord.git"
-  },
-  "keywords": [
-    "discord",
-    "discord.js",
-    "utilsfordiscord",
-    "discord-utils",
-    "utils",
-    "discord.js-utils"
-  ],
-  "author": "Turtlepaw",
-  "license": "MIT",
-  "bugs": {
-    "url": "https://github.com/turtlepaws-workshop/paintfordiscord/issues"
-  },
-  "homepage": "https://github.com/turtlepaws-workshop/paintfordiscord#readme",
   "dependencies": {
-    "discord.js": "^14.6.0",
-    "typescript": "^4.7.4"
+    "axios": "^1.2.0",
+    "discord.js": "^14.7.0",
+    "typescript": "^4.9.3"
   }
 }
