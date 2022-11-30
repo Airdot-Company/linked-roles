@@ -1,6 +1,6 @@
 {
   "name": "@airdot/verifiers",
-  "version": "1.1.0",
+  "version": "1.1.1",
   "description": "Verifiers for node types and discord types",
   "main": "dist/index.js",
   "repository": "https://github.com/Airdot-Company/verifiers.git",
