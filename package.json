@@ -2,7 +2,7 @@
   "name": "@airdot/verifiers",
   "version": "1.1.0",
   "description": "Verifiers for node types and discord types",
-  "main": "index.js",
+  "main": "dist/index.js",
   "repository": "https://github.com/Airdot-Company/verifiers.git",
   "author": "TurtlePaw <turtlesimsyt@gmail.com>",
   "license": "MIT",
