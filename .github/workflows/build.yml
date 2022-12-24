@@ -18,7 +18,7 @@ jobs:
       - name: Install dependencies
         run: yarn --immutable
 
-      - name: Tests
+      - name: Build
         run: yarn build
         env: # Or as an environment variable
             TOKEN: ${{ secrets.TOKEN }}
