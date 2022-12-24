@@ -1,8 +1,8 @@
-name: Tests
+name: Build
 on: [push, pull_request]
 jobs:
   test:
-    name: Run Tests
+    name: Build Source
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repository
@@ -19,6 +19,6 @@ jobs:
         run: yarn --immutable
 
       - name: Tests
-        run: yarn dev
+        run: yarn build
         env: # Or as an environment variable
             TOKEN: ${{ secrets.TOKEN }}
