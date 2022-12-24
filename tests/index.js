@@ -1,16 +1,26 @@
-const { Verifiers } = require("../dist/index");
-require("colors");
+require("dotenv").config();
+const { LinkedRoles: LinkedRolesClient, MetadataFieldBuilder, MetadataType } = require("../dist");
+const express = require("express");
 
-(() => {
-    console.log(`Running Hex Color Tests:`.blue + `
-• aaa is hex color string: ${Verifiers.HexColor("aaa")}
-• #5865f2 is hex color string: ${Verifiers.HexColor("#5865f2")}`.gray);
-})();
+const app = express();
 
-(() => {
-    console.log(`Running Link Tests:`.blue + `
-• aaa is link: ${Verifiers.Link("aaa")}
-• https://discord.gg/ is link: ${Verifiers.Link("https://discord.gg/")}
-• (unstrict) discord.gg is link: ${Verifiers.Link("discord.gg", false)}
-• (strict) discord.gg is link: ${Verifiers.Link("discord.gg")}`.gray);
-})();
+const LinkedRoles = new LinkedRolesClient({
+    clientId: process.env.CLIENT_ID,
+    token: process.env.TOKEN,
+    cookieSecret: "cookie_secret_a402uthjnjdf",
+    platformName: "Linked Roles",
+    redirectURL: "http://localhost:5000/discord-oauth-callback",
+    secret: process.env.CLIENT_SECRET
+});
+
+LinkedRoles.SetMetadataRecords([
+    new MetadataFieldBuilder()
+        .setName("Messages")
+        .setDescription("How many messages they sent.")
+        .setKey("messages")
+        .setType(MetadataType.IntegerGreaterThanOrEqual)
+]);
+
+LinkedRoles.AttachExpressApp(app);
+
+app.listen(5000, () => console.log("http://localhost:5000/"))
