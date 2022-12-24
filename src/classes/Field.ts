@@ -1,8 +1,8 @@
 import { Locale } from "discord-api-types/v10";
 import { APIMetadataField, Object } from "../typings/Interfaces";
-import { MetadataType } from "../typings/Enums";
+import { FieldType } from "../typings/Enums";
 
-export class MetadataFieldBuilder {
+export class FieldBuilder {
     /**
      * The name of this metadata field
      */
@@ -31,9 +31,9 @@ export class MetadataFieldBuilder {
     /**
      * The type of this metadata field
      */
-    public type: MetadataType;
+    public type: FieldType;
 
-    setType(type: MetadataType) {
+    setType(type: FieldType) {
         this.type = type
         return this;
     }

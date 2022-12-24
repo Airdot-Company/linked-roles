@@ -1,5 +1,5 @@
-import { MetadataFieldBuilder } from "../classes/Field";
+import { FieldBuilder } from "../classes/Field";
 
-export function isMetadataFieldBuilder(builder: any): builder is MetadataFieldBuilder {
+export function isFieldBuilder(builder: any): builder is FieldBuilder {
     return builder?.setName != null;
 }

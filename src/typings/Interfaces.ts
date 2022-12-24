@@ -1,5 +1,6 @@
-import { Locale } from "discord-api-types/v10";
-import { MetadataType } from "./Enums"
+import { APIUser, Locale } from "discord-api-types/v10";
+import { FieldType } from "./Enums"
+import { Express } from "express";
 
 export type Object<K extends string | number | symbol, V> = {
     [key in K]: V;
@@ -9,7 +10,7 @@ export interface APIMetadataField {
     /**
      * Type of metadata value
      */
-    type: MetadataType;
+    type: FieldType;
     /**
      * Key for the metadata field(must be a - z, 0 - 9, or _ characters; max 50 characters)
     */
@@ -32,6 +33,11 @@ export interface APIMetadataField {
     description_localizations?: Object<Locale, string>;
 }
 
+export interface UserStorage {
+    get: (value: string) => Promise<OAuthUser> | OAuthUser;
+    set: (key: string, values: OAuthUser) => any;
+}
+
 export interface LinkedRolesOptions {
     token: string;
     clientId: string;
@@ -39,10 +45,21 @@ export interface LinkedRolesOptions {
     redirectURL: string;
     secret: string;
     cookieSecret: string;
+    storage: UserStorage;
 }
 
 export interface OAuthUser {
     access_token: string;
     refresh_token: string;
     expires_at: number;
+}
+
+export interface AttachExpressAppOptions {
+    app: Express;
+    verify: (user: APIUser, field: APIMetadataField) => boolean | Promise<boolean>;
+}
+
+export interface APIUpdateMetadata {
+    key: string;
+    value: boolean;
 }

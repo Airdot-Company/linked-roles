@@ -8,7 +8,7 @@ export enum ErrorMessages {
     //InvalidConstuctorArgument = "Invalid constructor argument recieved"
 }
 
-export enum MetadataType {
+export enum FieldType {
     /**
      * The metadata value (integer) is less than or equal to the guild's configured value (integer)
      */

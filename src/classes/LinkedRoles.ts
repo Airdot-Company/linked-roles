@@ -1,13 +1,14 @@
 import { REST } from "@discordjs/rest";
 import ModuleError from "../utils/Error";
-import { Routes } from "discord-api-types/v10";
-import { APIMetadataField, LinkedRolesOptions, OAuthUser, Object } from "../typings/Interfaces";
-import { MetadataFieldBuilder } from "./Field";
-import { isMetadataFieldBuilder } from "../utils/isBuilder";
+import { Routes, RESTGetAPIOAuth2CurrentAuthorizationResult } from "discord-api-types/v10";
+import { APIMetadataField, APIUpdateMetadata, AttachExpressAppOptions, LinkedRolesOptions, OAuthUser, Object, UserStorage } from "../typings/Interfaces";
+import { FieldBuilder } from "./Field";
+import { isFieldBuilder } from "../utils/isBuilder";
 import { Express } from "express";
 import cookieParser from "cookie-parser";
 import crypto from "crypto";
 import fetch from "node-fetch";
+import { FieldType } from "../typings/Enums";
 
 export class LinkedRoles {
     public token: string;
@@ -17,15 +18,16 @@ export class LinkedRoles {
     public redirectURL: string;
     public secret: string;
     public cookieSecret: string;
-    private store: Map<string, OAuthUser> = new Map();
+    private store: UserStorage;
 
-    constructor({ clientId, token, platformName, redirectURL, secret, cookieSecret }: LinkedRolesOptions) {
+    constructor({ clientId, token, platformName, redirectURL, secret, cookieSecret, storage }: LinkedRolesOptions) {
         this.token = token;
         this.secret = secret;
         this.clientId = clientId;
         this.platformName = platformName;
         this.redirectURL = redirectURL;
         this.cookieSecret = cookieSecret;
+        this.store = storage;
         this.rest = new REST({ version: '10' }).setToken(token);
     }
 
@@ -36,6 +38,8 @@ export class LinkedRoles {
         const Secret = (this.secret);
         const CookieSecret = (this.cookieSecret);
         const ClientId = (clientId ?? this.clientId);
+        const Store = this.store;
+
         if (Token == null || typeof Token != "string") throw new ModuleError({
             header: "INVALID_TOKEN",
             message: "Invalid token provided"
@@ -51,6 +55,10 @@ export class LinkedRoles {
         if (Secret == null || typeof Secret != "string") throw new ModuleError({
             header: "INVALID_SECRET",
             message: "Invalid secret provided"
+        });
+        if (Store == null) throw new ModuleError({
+            header: "INVALID_STORAGE",
+            message: "Invalid user storage provided"
         });
         if (CookieSecret == null || typeof CookieSecret != "string") throw new ModuleError({
             header: "INVALID_COOKIE_SECRET",
@@ -69,34 +77,31 @@ export class LinkedRoles {
         return rest.get(Routes.applicationRoleConnectionMetadata(this.clientId)) as Promise<APIMetadataField[]>;
     }
 
-    public SetMetadataRecords(fields: (APIMetadataField | MetadataFieldBuilder)[]) {
+    public SetMetadataRecords(fields: (APIMetadataField | FieldBuilder)[]) {
         this.verifyOptions();
         const { rest } = this;
 
         return rest.put(Routes.applicationRoleConnectionMetadata(this.clientId), {
-            body: fields.map(record => isMetadataFieldBuilder(record) ? record.toJSON() : record)
+            body: fields.map(record => isFieldBuilder(record) ? record.toJSON() : record)
         });
     }
 
-    private async PushMetadata(userId: string, tokens: OAuthUser, metadata) {
+    private async PushMetadata(userId: string, tokens: OAuthUser, metadata: APIUpdateMetadata[]) {
+        //`https://discord.com/api/v10/users/@me/applications/${this.clientId}/role-connection`;
         const url = Routes.userApplicationRoleConnection(this.clientId);
         const accessToken = await this.getAccessToken(userId, tokens);
         const body = {
             platform_name: this.platformName,
             metadata,
         };
-        const response = await fetch(url, {
-            method: 'PUT',
+        const response = await this.rest.put(url, {
             body: JSON.stringify(body),
             headers: {
-                Authorization: `Bearer ${accessToken}`,
                 'Content-Type': 'application/json',
             },
         });
 
-        if (!response.ok) {
-            throw new Error(`Error pushing discord metadata: [${response.status}] ${response.statusText}`);
-        }
+        return response;
     }
 
     private async storeDiscordTokens(userId: string, tokens: OAuthUser) {
@@ -107,27 +112,11 @@ export class LinkedRoles {
         return await this.store.get(`discord-${userId}`);
     }
 
-    private async updateMetadata(userId: string, fields: APIMetadataField[], newFields: Object<string, any>) {
+    private async updateMetadata(userId: string, scheme: APIMetadataField[], newFields: APIUpdateMetadata[]) {
         // Fetch the Discord tokens from storage
         const tokens = await this.getDiscordTokens(userId);
 
-        let metadata = {};
-        try {
-            // Fetch the new metadata you want to use from an external source. 
-            // This data could be POST-ed to this endpoint, but every service
-            // is going to be different.  To keep the example simple, we'll
-            // just generate some random data. 
-            metadata = fields.map(e => ({
-                [e.key]: newFields[e.key]
-            }));
-        } catch (e) {
-            e.message = `Error fetching external data: ${e.message}`;
-            console.error(e);
-            // If fetching the profile data for the external service fails for any reason,
-            // ensure metadata on the Discord side is nulled out. This prevents cases
-            // where the user revokes an external app permissions, and is left with
-            // stale verified role data.
-        }
+        const metadata = newFields;
 
         // Push the data to Discord.
         await this.PushMetadata(userId, tokens, metadata);
@@ -212,25 +201,20 @@ export class LinkedRoles {
     /**
      * Given a user based access token, fetch profile information for the current user.
      */
-    private async getUserData(tokens): Promise<any> {
+    private async getUserData(tokens: OAuthUser) {
         //'https://discord.com/api/v10/oauth2/@me'
         const url = Routes.oauth2CurrentAuthorization();
-        const response = await fetch(url, {
+        const response = await this.rest.get(url, {
             headers: {
                 Authorization: `Bearer ${tokens.access_token}`,
             },
         });
-        if (response.ok) {
-            const data = await response.json();
-            return data;
-        } else {
-            throw new Error(`Error fetching user data: [${response.status}] ${response.statusText}`);
-        }
+
+        return response as Promise<RESTGetAPIOAuth2CurrentAuthorizationResult>;
     }
 
-    public async AttachExpressApp(app: Express) {
+    public async AttachExpressApp({ app, verify }: AttachExpressAppOptions) {
         app.use(cookieParser(this.cookieSecret));
-        const fields = await this.GetMetadataRecords();
         app.get('/verified-role', async (req, res) => {
             const { url, state } = this.getOAuthURL();
 
@@ -257,6 +241,7 @@ export class LinkedRoles {
                 // 1. Uses the code and state to acquire Discord OAuth2 tokens
                 const code = req.query['code'];
                 const discordState = req.query['state'];
+                const Fields = await this.GetMetadataRecords();
 
                 // make sure the state parameter exists
                 const { clientState } = req.signedCookies;
@@ -277,7 +262,11 @@ export class LinkedRoles {
                 });
 
                 // 3. Update the users metadata, assuming future updates will be posted to the `/update-metadata` endpoint
-                await this.updateMetadata(userId, null, null);
+                const newFields = await Promise.all(Fields.map(async e => ({
+                    key: e.key,
+                    value: await verify(meData.user, e)
+                })));
+                await this.updateMetadata(userId, Fields, newFields);
 
                 res.send('You did it!  Now go back to Discord.');
             } catch (e) {
@@ -294,7 +283,7 @@ export class LinkedRoles {
         app.post('/update-metadata', async (req, res) => {
             try {
                 const userId = req.body.userId;
-                await this.updateMetadata(userId, null, null)
+                //await this.updateMetadata()
 
                 res.sendStatus(204);
             } catch (e) {
